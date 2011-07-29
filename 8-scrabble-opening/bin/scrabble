@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+require_relative '../lib/scrabble'
+
+puts Scrabble::BestOpening.parse(ARGV[0] || 'EXAMPLE_INPUT.json').find
