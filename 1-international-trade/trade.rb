@@ -4,7 +4,7 @@ require 'bigdecimal'
 
 module Trade
 
-  module TypeCasts
+  module DuckTyping
     private
 
     def to_bigdecimal(value)
@@ -17,18 +17,32 @@ module Trade
     end
   end
 
-  class Money
-    include TypeCasts
-
-    @exchange_rates = []
-
-    class << self
-      attr_reader :exchange_rates
-
-      def exists?(rate)
-        !!rates.find { |r| r == rate }
-      end
+  module ExchangeRates
+    def self.extended(object)
+      object.instance_variable_set(:@exchange_rates, [])
     end
+
+    def exchange_rates
+      @exchange_rates
+    end
+
+    def find_rate(rate)
+      exchange_rates.find { |r| r == rate }
+    end
+
+    def has_rate?(rate)
+      !!find_rate(rate)
+    end
+
+    def add_rate(rate)
+      @exchange_rates << rate unless has_rate?
+    end
+  end
+
+  class Money
+    include DuckTyping
+
+    extend ExchangeRates
 
     def initialize(amount, currency='USD')
       @amount   = to_bigdecimal(amount)
@@ -43,7 +57,7 @@ module Trade
   end
 
   class Rate
-    include TypeCasts
+    include DuckTyping
 
     def initialize(from, to, rate)
       @from = from
@@ -74,6 +88,16 @@ module Trade
     def to_s
       "(#{to_key})@#{@rate.to_s('f')}"
     end
+  end
+
+  class Transaction
+    def initialize(store, sku, amount=Money.new(1, 'USD'))
+      @store  = store
+      @sku    = sku
+      @amount = amount
+    end
+
+    attr_reader :store, :sku, :amount
   end
 end
 
